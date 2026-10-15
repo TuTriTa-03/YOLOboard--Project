@@ -1,48 +1,63 @@
+
 #include <Arduino.h>
-#include <Adafruit_NeoPixel.h>
 
-#define NEOPIXEL_PIN 45
-#define NUM_PIXELS 1
+#include "LedController.h"
+#include "RtosManager.h"
+#include "WebController.h"
 
-Adafruit_NeoPixel neopix(
-    NUM_PIXELS,
-    NEOPIXEL_PIN,
-    NEO_GRB + NEO_KHZ800
-);
+// 1. Tao cac doi tuong cua he thong
+LedController led;
+RtosManager rtos;
+WebController web;
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
+    delay(10000);
 
-    neopix.begin();
-    neopix.clear();
-    neopix.show();
+    Serial.println();
+    Serial.println("===== SETUP START =====");
 
-    Serial.println("App started");
+    // 2. Khoi tao bo dieu khien NeoPixel
+    led.begin();
+
+    Serial.println("LED CONTROLLER INITIALIZED");
+
+    // 3. Khoi tao FreeRTOS
+    // Truyen doi tuong LED cho RtosManager su dung
+    if (!rtos.begin(led))
+    {
+        Serial.println("ERROR: RTOS initialization failed!");
+
+        while (true)
+        {
+            delay(1000);
+        }
+    }
+
+    Serial.println("RTOS INITIALIZED");
+
+    // 4. Khoi tao WebServer
+    // Truyen doi tuong RTOS cho WebController
+    if (!web.begin(rtos))
+    {
+        Serial.println("ERROR: WebController initialization failed!");
+
+        while (true)
+        {
+            delay(1000);
+        }
+    }
+
+    Serial.println("WEBSERVER INITIALIZED");
+    Serial.println("===== SETUP COMPLETE =====");
 }
 
-void loop() {
+void loop()
+{
+    // Xu ly cac HTTP request tu trinh duyet
+    web.handleClient();
 
-    // LED ON - ĐỎ
-    neopix.setPixelColor(0, neopix.Color(255, 0, 0));
-    neopix.show();
-
-    Serial.println("LED ON - RED");
-
-    delay(1000);
-
-    // LED ON - VÀNG
-    neopix.setPixelColor(0, neopix.Color(255, 255, 0));
-    neopix.show();
-
-    Serial.println("LED ON - YELLOW");
-
-    delay(1000);
-
-    // LED OFF
-    neopix.clear();
-    neopix.show();
-
-    Serial.println("LED OFF");
-
-    delay(1000);
+    // Nhuong thoi gian CPU
+    delay(2);
 }
