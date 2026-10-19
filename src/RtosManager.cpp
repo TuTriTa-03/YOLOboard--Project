@@ -5,7 +5,9 @@ RtosManager::RtosManager()
     : ledController(nullptr),
       ledQueue(nullptr),
       ledCommandQueue(nullptr),
-      serialMutex(nullptr)
+      serialMutex(nullptr),
+      currentLedState(0),
+      stateMutex(nullptr)
 {
 }
 
@@ -14,10 +16,17 @@ bool RtosManager::begin(LedController &led)
     ledController = &led;
 
     ledQueue = xQueueCreate(5, sizeof(int));
+
     ledCommandQueue = xQueueCreate(5, sizeof(int));
+
     serialMutex = xSemaphoreCreateMutex();
 
-    if (ledQueue == nullptr || ledCommandQueue == nullptr || serialMutex == nullptr)
+    stateMutex = xSemaphoreCreateMutex();
+
+    if (ledQueue == nullptr ||
+        ledCommandQueue == nullptr ||
+        serialMutex == nullptr ||
+        stateMutex == nullptr)
     {
         Serial.println("ERROR : Failed to create RTOS objects!");
         return false;
@@ -26,6 +35,7 @@ bool RtosManager::begin(LedController &led)
     Serial.println("LED QUEUE CREATED");
     Serial.println("LED COMMAND QUEUE CREATED");
     Serial.println("SERIAL MUTEX CREATED");
+    Serial.println("STATE MUTEX CREATED");
 
     BaseType_t ledResult = xTaskCreate(
         ledTask,
@@ -33,8 +43,7 @@ bool RtosManager::begin(LedController &led)
         2048,
         this,
         1,
-        nullptr
-    );
+        nullptr);
 
     if (ledResult != pdPASS)
     {
@@ -50,8 +59,7 @@ bool RtosManager::begin(LedController &led)
         2048,
         this,
         1,
-        nullptr
-    );
+        nullptr);
 
     if (monitorResult != pdPASS)
     {
@@ -62,7 +70,6 @@ bool RtosManager::begin(LedController &led)
     Serial.println("MONITOR TASK CREATED");
 
     return true;
-
 };
 
 bool RtosManager::sendCommand(int command)
@@ -77,15 +84,20 @@ bool RtosManager::sendCommand(int command)
         return false;
     }
 
-    return xQueueSend(ledCommandQueue, &command, 0) == pdPASS;
+    return xQueueSend(
+               ledCommandQueue,
+               &command,
+               0) == pdPASS;
 }
 
 void RtosManager::ledTask(void *pvParameters)
 {
-    RtosManager *manager = 
+    RtosManager *manager =
         static_cast<RtosManager *>(pvParameters);
 
     manager->runLedTask();
+
+    vTaskDelete(nullptr);
 }
 
 void RtosManager::runLedTask()
@@ -95,7 +107,9 @@ void RtosManager::runLedTask()
     while (true)
     {
         if (xQueueReceive(
-                ledCommandQueue, &command, portMAX_DELAY) == pdPASS)
+                ledCommandQueue,
+                &command,
+                portMAX_DELAY) == pdPASS)
         {
             int ledState;
 
@@ -116,8 +130,19 @@ void RtosManager::runLedTask()
                 continue;
             }
 
+            if (xSemaphoreTake(
+                    stateMutex,
+                    portMAX_DELAY) == pdTRUE)
+            {
+                currentLedState = ledState;
+
+                xSemaphoreGive(stateMutex);
+            }
+
             if (xQueueSend(
-                    ledQueue, &ledState, portMAX_DELAY) != pdPASS)
+                    ledQueue,
+                    &ledState,
+                    portMAX_DELAY) != pdPASS)
             {
                 Serial.println("ERROR : Failed to send LED State");
             }
@@ -130,18 +155,24 @@ void RtosManager::monitorTask(void *pvParameters)
     RtosManager *manager = static_cast<RtosManager *>(pvParameters);
 
     manager->runMonitorTask();
+
+    vTaskDelete(nullptr);
 }
 
 void RtosManager::runMonitorTask()
 {
     int receivedState;
 
-    while(true)
+    while (true)
     {
         if (xQueueReceive(
-            ledQueue, &receivedState, portMAX_DELAY) == pdPASS)
+                ledQueue,
+                &receivedState,
+                portMAX_DELAY) == pdPASS)
         {
-            if (xSemaphoreTake(serialMutex, portMAX_DELAY) == pdTRUE)
+            if (xSemaphoreTake(
+                    serialMutex,
+                    portMAX_DELAY) == pdTRUE)
             {
                 Serial.printf("Received State = %d\r\n", receivedState);
 
@@ -149,4 +180,25 @@ void RtosManager::runMonitorTask()
             }
         }
     }
+}
+
+bool RtosManager::getLedState(int &state)
+{
+    if (stateMutex == nullptr)
+    {
+        return false;
+    }
+
+    if (xSemaphoreTake(
+            stateMutex,
+            portMAX_DELAY) != pdTRUE)
+    {
+        return false;
+    }
+
+    state = currentLedState;
+
+    xSemaphoreGive(stateMutex);
+
+    return true;
 }

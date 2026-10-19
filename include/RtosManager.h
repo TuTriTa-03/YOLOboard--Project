@@ -14,8 +14,9 @@ public:
     RtosManager();
 
     bool begin(LedController &led);
-
     bool sendCommand(int command);
+    bool getLedState(int &state);
+
 private:
     static void ledTask(void *pvParameters);
     static void monitorTask(void *pvParameters);
@@ -28,7 +29,9 @@ private:
     QueueHandle_t ledQueue;
     QueueHandle_t ledCommandQueue;
     SemaphoreHandle_t serialMutex;
+    SemaphoreHandle_t stateMutex;
 
+    int currentLedState;
 };
 
 #endif
