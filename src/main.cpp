@@ -1,12 +1,14 @@
 #include <Arduino.h>
+#include <Wire.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
-#include "LedController.h"
-#include "RtosManager.h"
-#include "MqttController.h"
+#include "AppTasks.h"
 
-LedController led;
-RtosManager rtos;
-MqttController mqtt;
+// I2C1 pin configuration
+// Replace these values only after verifying the board pinout.
+constexpr uint8_t I2C1_SDA_PIN = 11;
+constexpr uint8_t I2C1_SCL_PIN = 12;
 
 void setup()
 {
@@ -14,37 +16,31 @@ void setup()
     delay(10000);
 
     Serial.println();
-    Serial.println("===== PINKPULSE START =====");
+    Serial.println("================================");
+    Serial.println(" Environmental Monitoring System");
+    Serial.println("================================");
 
-    led.begin();
-    Serial.println("LED CONTROLLER INITIALIZED");
+    // Initialize the I2C bus only once.
+    Serial.println("[MAIN] Initializing I2C1...");
 
-    if (!rtos.begin(led))
+    if (!Wire.begin(I2C1_SDA_PIN, I2C1_SCL_PIN))
     {
-        Serial.println("ERROR : RTOS initialization failed!");
-        while(true)
-        {
-            delay(1000);
-        }
+        Serial.println("[MAIN] I2C initialization failed!");
+        return;
     }
 
-    Serial.println("RTOS INITIALIZED");
+    Wire.setClock(100000);
 
-    if (!mqtt.begin(rtos))
-    {
-        Serial.println("ERROR : RTOS initialization failed!");
-        while(true)
-        {
-            delay(1000);
-        }
-    }
+    Serial.println("[MAIN] I2C1 initialized.");
 
-    Serial.println("MQTT INITIALIZED");
-    Serial.println("===== SETUP COMPLETE =====");
+    // Start the application and FreeRTOS tasks.
+    Serial.println("[MAIN] Starting application...");
+    startAppTasks();
+
+    Serial.println("[MAIN] Application startup completed.");
 }
 
 void loop()
 {
-    mqtt.loop();
-    delay(2);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 }

@@ -1,21 +1,25 @@
+
 #ifndef LED_CONTROLLER_H
 #define LED_CONTROLLER_H
 
 #include <Arduino.h>
-#include <Adafruit_Neopixel.h>
+#include "EnvironmentMonitor.h"
 
-class LedController 
+class LedController
 {
 public:
-    LedController();
-
+    // Initialize the LED hardware
     void begin();
-    void turnOn();
-    void turnOff();
+
+    // Update the LED behavior based on the environment status
+    void update(EnvironmentStatus status);
 
 private:
-    Adafruit_NeoPixel neopix;
+    // Turn the LED on
+    void turnOn();
+
+    // Turn the LED off
+    void turnOff();
 };
 
-
-#endif
+#endif // LED_CONTROLLER_H

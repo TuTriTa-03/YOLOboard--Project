@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080d1a">
+  <title>Eilik Companion - Environmental Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="font-sans">
+  <div class="ambient ambient-cyan"></div>
+  <div class="ambient ambient-indigo"></div>
+  <main class="app-shell">
+    <header class="glass-panel topbar">
+      <div class="brand">
+        <div class="brand-icon"><i data-lucide="bot"></i></div>
+        <div>
+          <div class="brand-title-row">
+            <h1>Eilik Companion</h1>
+            <span class="version-tag">ESP32-S3 / WEB v2.0</span>
+          </div>
+          <p class="muted">Little friend, big conversations • Giám sát môi trường trực tiếp</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="connection-pill">
+          <span id="connectionDot" class="status-dot offline"></span>
+          <span id="connectionStatus">Đang kết nối ESP32...</span>
+          <span class="separator">|</span>
+          <span id="livePing">-- ms</span>
+        </div>
+        <div class="clock-pill"><i data-lucide="clock"></i><span id="topClock">--:--:--</span></div>
+        <div class="view-toggle">
+          <button id="viewSliderBtn" class="toggle-button active" type="button" onclick="switchView('slider')"><i data-lucide="smartphone"></i> Showcase</button>
+          <button id="viewFullBtn" class="toggle-button" type="button" onclick="switchView('grid')"><i data-lucide="layout-grid"></i> Dashboard</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="glass-panel hero">
+      <div class="hero-robot">
+        <button type="button" class="robot-button" onclick="cycleRandomEmotion()" title="Bấm để đổi biểu cảm">
+          <div class="robot-orb">
+            <svg id="robotHeroSvg" viewBox="0 0 200 200" aria-label="Eilik robot">
+              <circle cx="100" cy="100" r="85" fill="#e2e8f0" stroke="#94a3b8" stroke-width="4"/>
+              <circle cx="20" cy="100" r="14" fill="#0284c7" stroke="#38bdf8" stroke-width="3"/>
+              <circle cx="180" cy="100" r="14" fill="#0284c7" stroke="#38bdf8" stroke-width="3"/>
+              <rect x="42" y="55" width="116" height="85" rx="36" fill="#070d18" stroke="#1e293b" stroke-width="3"/>
+              <g id="heroEyesGroup" class="led-eye"></g>
+              <ellipse cx="54" cy="108" rx="7" ry="4" fill="rgba(244,63,94,.45)"/>
+              <ellipse cx="146" cy="108" rx="7" ry="4" fill="rgba(244,63,94,.45)"/>
+            </svg>
+          </div>
+        </button>
+        <div id="liveSubtitleOverlay" class="subtitle-hidden">
+          <div id="subJapanese">こんにちは！</div>
+          <div id="subVietnamese">Chào bạn!</div>
+        </div>
+        <p id="currentEmotionLabel" class="emotion-label">Biểu cảm: Vui vẻ</p>
+      </div>
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="pulse-dot"></span> GIỌNG NHẬT • PHỤ ĐỀ VIỆT</span>
+        <h2>Eilik đang sẵn sàng trò chuyện cùng bạn!</h2>
+        <p>Thử các biểu cảm robot, nghe câu thoại tiếng Nhật và theo dõi dữ liệu môi trường thật từ cảm biến DHT20.</p>
+        <div class="hero-actions">
+          <button class="button button-gradient" type="button" onclick="playGreetingVoice()"><i data-lucide="volume-2"></i> Nghe Eilik chào bạn</button>
+          <button class="button button-glass" type="button" onclick="speakJapanesePreset('ganbatte')"><i data-lucide="heart"></i> Ganbatte!</button>
+          <button class="button button-glass" type="button" onclick="stopSpeech()"><i data-lucide="volume-x"></i> Dừng giọng nói</button>
+        </div>
+        <p id="voiceStatus" class="muted small" aria-live="polite">Sẵn sàng. Giọng đọc phụ thuộc vào trình duyệt.</p>
+      </div>
+    </section>
+
+    <section id="environmentMonitor" class="glass-panel environment-section">
+      <div class="section-heading">
+        <div>
+          <h2><i data-lucide="activity"></i> Giám sát môi trường</h2>
+          <p class="muted">Dữ liệu từ DHT20 qua ESP32-S3 + FreeRTOS</p>
+        </div>
+        <div class="sensor-status">
+          <span id="sensorConnectionDot" class="status-dot offline"></span>
+          <span id="sensorConnectionStatus">Đang chờ dữ liệu...</span>
+        </div>
+      </div>
+      <div class="sensor-grid">
+        <article class="glass-card metric-card">
+          <div class="metric-label"><i data-lucide="thermometer"></i> Nhiệt độ</div>
+          <div class="metric-value"><span id="temperatureValue">--</span><small>°C</small></div>
+          <p class="muted small">Đo trực tiếp từ DHT20</p>
+        </article>
+        <article class="glass-card metric-card">
+          <div class="metric-label"><i data-lucide="droplets"></i> Độ ẩm</div>
+          <div class="metric-value"><span id="humidityValue">--</span><small>%</small></div>
+          <p class="muted small">Độ ẩm tương đối</p>
+        </article>
+        <article class="glass-card metric-card">
+          <div class="metric-label"><i data-lucide="shield-check"></i> Trạng thái môi trường</div>
+          <div id="environmentStatus" class="environment-value">WAITING</div>
+          <p id="sensorUpdatedAt" class="muted small">Chưa nhận dữ liệu</p>
+        </article>
+      </div>
+      <p id="apiErrorMessage" class="api-message" role="status"></p>
+    </section>
+
+    <section id="mockupSection" class="screens-section">
+      <div class="section-heading">
+        <div>
+          <h2><i data-lucide="layout"></i> 6 màn hình giao diện Eilik</h2>
+          <p class="muted">Cuộn ngang hoặc chuyển sang Dashboard để xem toàn bộ màn hình.</p>
+        </div>
+        <span class="eyebrow">CÓ THỂ TƯƠNG TÁC</span>
+      </div>
+      <div id="mockupScreens" class="mockupScreens">
+        <article class="phone-screen" id="screenWelcome">
+          <div class="phone-status"><span class="statusTime">--:--</span><span>▰ ▰ ▰ ▰</span></div>
+          <div class="phone-content welcome-content">
+            <div><h3>Eilik Companion</h3><p class="muted small">Little friend, big conversations</p></div>
+            <div class="welcome-robot">🤖</div>
+            <div class="chat-bubble"><b>Chào bạn!</b><p>Mình là Eilik ❤️</p><small>Cùng trò chuyện và khám phá thế giới nhé!</small></div>
+            <button class="button button-gradient full-width" onclick="showScreenTab('screenChatHome')">Bắt đầu <i data-lucide="arrow-right"></i></button>
+          </div>
+        </article>
+
+        <article class="phone-screen" id="screenChatHome">
+          <div class="phone-status"><span class="statusTime">--:--</span><span>▰ ▰ ▰ ▰</span></div>
+          <div class="phone-header"><div><b>🤖 Eilik</b><small>Demo • Sẵn sàng trò chuyện</small></div><button class="icon-button" onclick="showScreenTab('screenSettings')" aria-label="Cài đặt"><i data-lucide="settings"></i></button></div>
+          <div class="phone-scroll" id="homeChatMessages">
+            <div class="chat-bubble">Chào bạn! Mình có thể trò chuyện cùng bạn. ☀️</div>
+            <div class="chat-bubble weather-card">
+              <div class="muted small">Dữ liệu môi trường trực tiếp</div>
+              <div class="weather-values"><span>🌡️ <b id="miniTemperature">--°C</b></span><span>💧 <b id="miniHumidity">--%</b></span></div>
+              <small id="miniSensorStatus">Đang chờ cảm biến...</small>
+            </div>
+          </div>
+          <div class="phone-bottom"><button class="icon-button" onclick="toggleVoiceSim()" aria-label="Cài đặt giọng nói"><i data-lucide="settings-2"></i></button><button class="round-mic" onclick="simulateVoiceRecord(this)" aria-label="Mô phỏng ghi âm"><i data-lucide="mic"></i></button><button class="icon-button" onclick="showScreenTab('screenDetailedChat')" aria-label="Mở chat"><i data-lucide="message-square"></i></button></div>
+        </article>
+
+        <article class="phone-screen" id="screenExpressions">
+          <div class="phone-status"><span class="statusTime">--:--</span><span>▰ ▰ ▰ ▰</span></div>
+          <div class="phone-header"><b>Biểu cảm</b><span class="tag">9 cảm xúc</span></div>
+          <div class="emotion-grid">
+            <button class="emotion-button" onclick="selectExpression('happy','Vui vẻ')"><span>😊</span>Vui vẻ</button>
+            <button class="emotion-button" onclick="selectExpression('sad','Buồn')"><span>😢</span>Buồn</button>
+            <button class="emotion-button" onclick="selectExpression('angry','Tức giận')"><span>😠</span>Giận</button>
+            <button class="emotion-button" onclick="selectExpression('surprised','Ngạc nhiên')"><span>😲</span>Ngạc nhiên</button>
+            <button class="emotion-button" onclick="selectExpression('sleep','Buồn ngủ')"><span>😴</span>Ngủ</button>
+            <button class="emotion-button" onclick="selectExpression('wink','Nháy mắt')"><span>😉</span>Nháy mắt</button>
+            <button class="emotion-button" onclick="selectExpression('love','Yêu thích')"><span>😍</span>Yêu thích</button>
+            <button class="emotion-button" onclick="selectExpression('confused','Bối rối')"><span>😵‍💫</span>Bối rối</button>
+            <button class="emotion-button" onclick="selectExpression('tired','Mệt mỏi')"><span>😪</span>Mệt</button>
+          </div>
+          <p class="phone-footer">Chạm vào cảm xúc để đổi khuôn mặt robot</p>
+        </article>
+
+        <article class="phone-screen" id="screenDetailedChat">
+          <div class="phone-status"><span class="statusTime">--:--</span><span>▰ ▰ ▰ ▰</span></div>
+          <div class="phone-header"><button class="icon-button" onclick="showScreenTab('screenChatHome')" aria-label="Quay lại"><i data-lucide="arrow-left"></i></button><b>Trò chuyện với Eilik</b><button class="icon-button" onclick="stopSpeech()" aria-label="Dừng giọng nói"><i data-lucide="volume-x"></i></button></div>
+          <div class="phone-scroll chat-dialogue" id="chatDialogue" aria-live="polite">
+            <div class="chat-bubble">Chào bạn! Bạn muốn trò chuyện về điều gì?</div>
+            <div class="chat-bubble user-bubble">Bạn có thích học lập trình không?</div>
+            <div class="chat-bubble">Có chứ! Mình thích những dự án công nghệ thú vị. 😊</div>
+          </div>
+          <div class="quick-prompts"><button onclick="sendQuickPrompt('Hôm nay là thứ mấy?')">Hôm nay là thứ mấy?</button><button onclick="sendQuickPrompt('Bạn làm được gì?')">Tính năng</button><button onclick="sendQuickPrompt('Nhiệt độ hiện tại là bao nhiêu?')">Nhiệt độ</button></div>
+          <form id="chatForm" class="chat-form"><input id="chatInputText" autocomplete="off" placeholder="Nhập tin nhắn..."><button class="send-button" type="submit" aria-label="Gửi tin nhắn"><i data-lucide="send"></i></button><button class="send-button" type="button" onclick="simulateVoiceRecord(this)" aria-label="Mô phỏng giọng nói"><i data-lucide="mic"></i></button></form>
+        </article>
+
+        <article class="phone-screen" id="screenTimeCalendar">
+          <div class="phone-status"><span class="statusTime">--:--</span><span>▰ ▰ ▰ ▰</span></div>
+          <div class="phone-header"><b><i data-lucide="clock"></i> Thời gian & Lịch</b></div>
+          <div class="clock-content"><div id="digitalClockMain" class="digital-clock">--:--</div><div id="digitalDateMain" class="date-text">Đang cập nhật...</div><div class="clock-info"><span>Giờ hiện tại</span><b id="exactTime">--:--:--</b></div><div class="clock-info"><span>Ngày hôm nay</span><b id="calendarDate">--/--/----</b></div><div class="clock-info"><span>Thứ trong tuần</span><b id="calendarDay">--</b></div></div>
+          <p class="phone-footer">Đồng hồ sử dụng thời gian của thiết bị</p>
+        </article>
+
+        <article class="phone-screen" id="screenSettings">
+          <div class="phone-status"><span class="statusTime">--:--</span><span>▰ ▰ ▰ ▰</span></div>
+          <div class="phone-header"><b>Cài đặt Eilik</b></div>
+          <div class="settings-content">
+            <div class="settings-card"><b>Nhân vật Eilik</b><p class="muted small">Chạm để thay đổi biểu cảm</p><button class="button button-glass full-width" onclick="cycleRandomEmotion()">Biểu cảm ngẫu nhiên</button></div>
+            <div class="settings-card"><b>Giọng đọc tiếng Nhật</b><p class="muted small">Phụ thuộc giọng có trên thiết bị</p><label>Tốc độ <b id="rateValue">0.90</b><input type="range" id="voiceRateSlider" min="0.6" max="1.4" step="0.05" value="0.90"></label><label>Cao độ <b id="pitchValue">1.20</b><input type="range" id="voicePitchSlider" min="0.8" max="2" step="0.05" value="1.20"></label><label>Âm lượng <b id="volumeValue">90%</b><input type="range" id="voiceVolSlider" min="0" max="100" step="5" value="90"></label><button class="button button-gradient full-width" onclick="playGreetingVoice()">Thử giọng đọc</button></div>
+            <div class="settings-card"><b>Thông tin ứng dụng</b><p class="muted small">Eilik Companion • ESP32-S3 Environmental Monitor</p></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="feature-section">
+      <div class="section-heading"><div><h2><i data-lucide="zap"></i> Tính năng nổi bật</h2><p class="muted">Giao diện tương tác kết hợp giám sát môi trường nhúng.</p></div></div>
+      <div class="feature-grid">
+        <article class="glass-panel feature-card"><i data-lucide="smile"></i><h3>Biểu cảm đa dạng</h3><p>Chuyển đổi giữa vui vẻ, buồn, giận dữ, ngạc nhiên và nhiều cảm xúc khác.</p></article>
+        <article class="glass-panel feature-card"><i data-lucide="message-square"></i><h3>Tương tác bằng giọng nói</h3><p>Đọc câu thoại tiếng Nhật bằng Speech Synthesis và hiển thị phụ đề tiếng Việt.</p></article>
+        <article class="glass-panel feature-card"><i data-lucide="thermometer"></i><h3>Giám sát môi trường</h3><p>Nhiệt độ, độ ẩm và trạng thái được cập nhật từ API của ESP32.</p></article>
+        <article class="glass-panel feature-card"><i data-lucide="clock"></i><h3>Đồng hồ & lịch</h3><p>Hiển thị thời gian theo máy đang mở dashboard.</p></article>
+        <article class="glass-panel feature-card"><i data-lucide="brain-circuit"></i><h3>Chat demo</h3><p>Câu trả lời hiện là mô phỏng phía trình duyệt; chưa phải AI trực tuyến.</p></article>
+        <article class="glass-panel feature-card"><i data-lucide="cpu"></i><h3>Embedded IoT</h3><p>ESP32-S3, FreeRTOS, cảm biến DHT20 và HTTP API.</p></article>
+      </div>
+    </section>
+
+    <section class="glass-panel architecture">
+      <div class="section-heading"><div><h2><i data-lucide="cpu"></i> Công nghệ & kiến trúc</h2><p class="muted">Luồng dữ liệu khi kết nối phần cứng thật.</p></div></div>
+      <div class="architecture-flow">
+        <div class="architecture-node"><i data-lucide="thermometer"></i><b>DHT20</b><small>Đo môi trường</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="architecture-node"><i data-lucide="cpu"></i><b>ESP32-S3</b><small>FreeRTOS + C++</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="architecture-node"><i data-lucide="network"></i><b>HTTP API</b><small>/api/status</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="architecture-node"><i data-lucide="monitor"></i><b>Dashboard</b><small>HTML / CSS / JS</small></div>
+      </div>
+    </section>
+
+    <footer class="app-footer"><span>Eilik Companion • Environmental Monitoring System</span><span>ESP32-S3 • FreeRTOS • DHT20</span></footer>
+  </main>
+  <script src="./app.js" defer></script>
+</body>
+</html>
