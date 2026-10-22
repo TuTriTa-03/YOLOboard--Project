@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://tutrita-03.github.io/YOLOboard--Project/">
+  <a href="https://tutrita-03.github.io/Embedded-IoT-Monitoring-System/">
     <img src="https://img.shields.io/badge/🌐_Live_Demo-Visit_Dashboard-FF69B4?style=for-the-badge" alt="Live Demo">
   </a>
   <img src="https://img.shields.io/badge/Platform-ESP32--S3-E7352C?style=for-the-badge&logo=espressif&logoColor=white" alt="ESP32-S3">
@@ -35,11 +35,19 @@ The web interface takes inspiration from the expressive personality of Eilik, tu
 
 ## 🚀 Live Demo
 
-**[Open the Eilik Dashboard →](https://tutrita-03.github.io/YOLOboard--Project/)**
+<p align="center">
+  <a href="https://tutrita-03.github.io/Embedded-IoT-Monitoring-System/">
+    <img src="https://img.shields.io/badge/OPEN-EILIK_DASHBOARD-FF69B4?style=for-the-badge&logo=github" alt="Open Eilik Dashboard">
+  </a>
+</p>
 
-The GitHub Pages version demonstrates the dashboard UI using simulated sensor readings. It does not directly connect to the physical ESP32-S3 board.
+**[Open Eilik Dashboard →](https://tutrita-03.github.io/Embedded-IoT-Monitoring-System/)**
+
+The GitHub Pages version allows visitors to explore the dashboard UI using simulated sensor readings. It does not directly connect to the physical ESP32-S3 board.
 
 When accessed through the board's local web server, the intended hardware workflow is to retrieve environmental measurements from the firmware API.
+
+> **Demo vs. hardware:** The online demo uses simulated readings. Real sensor data requires the ESP32-S3 / Yolo UNO firmware, sensor hardware, and local network connection to be running.
 
 ## 🧩 System Architecture
 
@@ -95,7 +103,7 @@ flowchart TD
 - Simulated environmental values for the online demo.
 - Firmware API endpoint designed to provide environmental status.
 
-> **Demo vs. hardware:** Some visual indicators and conversational features are UI demonstrations. Simulated online readings should not be interpreted as measurements from a physical sensor.
+> Some visual indicators and conversational features are UI demonstrations. Simulated online readings should not be interpreted as measurements from a physical sensor.
 
 ## ⚙️ Embedded Firmware
 
@@ -194,7 +202,7 @@ Open the project in VS Code and allow PlatformIO to install the configured depen
 
 Review the project configuration and source files for the correct board, I²C pins, sensor connections, and Wi-Fi settings.
 
-Do not commit real Wi-Fi passwords, MQTT credentials, or access tokens to a public repository.
+**Security:** Do not commit real Wi-Fi passwords, MQTT credentials, or access tokens to a public repository. Keep secrets in a local configuration file excluded from Git.
 
 ### 4. Build and upload firmware
 
@@ -217,9 +225,7 @@ pio run -t uploadfs
 pio device monitor -b 115200
 ```
 
-After connecting the board to Wi-Fi, open the board's local IP address in a browser to access the embedded web interface.
-
-**Note:** Pin assignments, network configuration, and sensor wiring must match the actual board setup.
+After connecting the board to Wi-Fi, open the board's local IP address in a browser to access the embedded web interface. The board must be powered on and reachable over the local network.
 
 ## 🗺️ Roadmap
 
@@ -256,7 +262,7 @@ Building intelligent systems that connect software with the real world.
 
 - GitHub: [@TuTriTa-03](https://github.com/TuTriTa-03)
 - Project repository: [YOLOboard--Project](https://github.com/TuTriTa-03/YOLOboard--Project)
-- Live demo: [Eilik Environmental Monitor](https://tutrita-03.github.io/YOLOboard--Project/)
+- Live demo: [Eilik Environmental Monitor](https://tutrita-03.github.io/Embedded-IoT-Monitoring-System/)
 
 ---
 
